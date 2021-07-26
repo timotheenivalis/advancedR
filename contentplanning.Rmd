@@ -1,0 +1,177 @@
+---
+title: "Advanced R planning"
+author: "Timothée Bonnet & Robert Cope"
+date: "09/07/2021"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    number_sections: true
+    theme: lumen
+---
+
+# Starting notes
+
+Martin's mentioned: 
+
+* Best practice for clean code, functions and packages
+* Agree on conventions with the team
+* R programming fundamentals
+* No need to cover specifically package creation or shiny (in-house skills)
+
+Questions to clarify:
+
+* How much tidyverse?
+* Real examples from ALA project to work on and improve?
+
+
+Some peripheral essentials that we can teach serendipitously along more central topics:
+
+* Team work with git and github:
+  * Basic use of git locally (commit, push, pull, merge, branch)
+  * Github pull requests, clean branch workflow
+* Know your IDE (Rstudio):
+  * Shortcuts
+  * Profiling and debugging assistance
+* R-Markdown
+
+# foundational R
+
+You can use R for decades without knowing the following. But knowing it is essential to writing robust and efficient code. In R lots of bugs and unexpected behaviour come from ignoring foundational R structures. 
+
+Lots of the material could follow http://adv-r.had.co.nz/.
+
+
+## Data types Structures
+
+### Elemental data types
+
+### Vectors
+
+### Lists
+
+### Matrices and arrays
+
+### Data-frames / tibbles
+
+## Subsetting
+
+### Simplifying vs. preserving subsetting
+
+## Functions
+
+## Control flow
+
+### && and || vs. & and |
+
+Use && and || in if statements. Faster and safer as long as you can ensure the tests have length one (or that you are fin with only the first element being used).
+
+```{r error=TRUE}
+x <- c(1:10)
+if(is.matrix(x) && ncol(x)> 6) print("hello") else print("bye")
+if(is.matrix(x) & ncol(x)> 6) print("hello") else print("bye")
+
+```
+
+
+# Writing "good" code
+
+Good code *always* means code that does what the programmers intend it to do. Well developed code should not crash accidentally (on a bug), but only with meaningful error messages flagging potential problems with the input or environment. Provided the code works reliably, we can focus on other aspects of quality.
+
+## Debugging
+
+### Ad-hoc
+
+That is my main method to fix errors.
+
+* Make the bug reproducible (`set.seed()`)
+* Locate the problem by printing intermediate results, and interrupting the script when things go wrong 
+* Visualise the objects you are manipulating 
+
+Often you will realise that an object is not what you were expecting. You can then trace back why that is the case, look for what triggered an exception, and edit your code to make it robust to those exceptions.
+
+
+### RStudio
+
+
+### Boomer
+
+Let you inspect the intermediate results of a call.
+
+```{r}
+library(boomer)
+boom(lapply(head(cars), sqrt), clock = TRUE, print = str)
+?boom()
+
+```
+
+
+## Aspects of quality and trade-offs
+
+Once your code works, good code may mean:
+
+* Clear, well commented, easy to read code using standard programming tools that your colleague know about (rather than some obscure packages doing black magic only you understand)
+* Fast
+* Frugal in RAM, disk space (Internet usage, electricity)
+* Flexible (Work for a wide range of data, analyses... and also likely to work in the future when R, packages and computer libraries are upgraded, or at least be easy to upgrade along)
+
+
+These aspects of quality good work synergetically or against each other. We will discuss and train on how to think about and improve each aspect.
+
+### Code profiling in RStudio with profvis
+
+Remember to be pragmatic! You have other things to do, so do not optimize every bit of code. Optimize in proportion to how much the code will be used, and in proportion of how much work is required to achieve meaningful gains.
+
+### Memory (RAM) optimizing techniques
+
+Mostly common sense:
+
+* Avoid unnecessary information
+* Avoid duplicated information
+* In extreme cases, write to file and then delete from the environment if something is not needed in RAM but may be useful later
+
+Sometimes it can be good to think about the type of data used to store information. In term of RAM in R:
+
+```{r}
+library(gdata) #package to use object.size()
+```
+
+```{r}
+many_bool <- rep(c(TRUE, FALSE), times=0.5e6)
+many_int <- c(0L:1e6L)
+many_db <- seq(from = 0.1, to =9, length.out=1e6)
+many_repeated_chr <- rep(c("abcde", "aabbc"), times=0.5e6)
+many_long_repeated_chr <- rep(c("abcdeebihbaihbdrrzhrghgbhkerbgkherbkgbkrebkgjbkjbgrjkbezbgmerbjgkjrkmuhzefuhdzjfhz", "aabbcazkfbhzeiyfgzehgyhdgaherkgjbkjrebgkjberkjgbkrebzgkhferbkgbkherbgihbrehgeihbaihbri"), times=0.5e6)
+
+#The following three lines create a vector of 1000000 unique character strings
+letmatrix <- expand.grid(one=letters, two=letters, three=letters, four=letters, five=letters[1:3], stringsAsFactors=FALSE)
+letmatrix <- letmatrix[1:1e6,]
+many_unique_chr <- apply(letmatrix, MARGIN =1, function(x) paste0(x[1],x[2],x[3],x[4],x[5]))
+
+
+# here are the results:
+object.size(many_bool) ; typeof(many_bool)
+object.size(many_int) ; typeof(many_int)
+object.size(many_db) ; typeof(many_db)
+object.size(many_repeated_chr) ; typeof(many_repeated_chr) ;
+object.size(many_long_repeated_chr) ; typeof(many_repeated_chr) ;
+object.size(many_unique_chr) ; typeof(many_unique_chr)
+
+```
+
+bool < integer **<<** double < short repeated character strings < very long repeated character strings **<<** unique character strings
+
+### Speed optimizing techniques
+
+Much more critical in general
+
+
+### Practice
+
+We provide a piece of slow, unclear, inefficient code and you try to improve its performance (while preserving the output exactness) in particular using profiling. Repeat until satisfactory.
+What does pre-allocation do for working objects? for output objects?
+
+### Speeding up further with fundamental functions and C++
+

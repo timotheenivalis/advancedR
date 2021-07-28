@@ -25,7 +25,16 @@ Questions to clarify:
 
 * How much tidyverse?
 * Real examples from ALA project to work on and improve?
+* How much Git do they use? What is the collaborative mechanism
+* When do we do it
+* Where can we do it
 
+Core topics:
+
+* Foundational R
+* Functions
+* Style and standardisation
+* Efficiency
 
 Some peripheral essentials that we can teach serendipitously along more central topics:
 
@@ -36,6 +45,22 @@ Some peripheral essentials that we can teach serendipitously along more central 
   * Shortcuts
   * Profiling and debugging assistance
 * R-Markdown
+* Coding style
+* Map, apply, vectorization, functions
+* Exercise with code swapping
+
+Maybes:
+
+* RCpp
+* Unit test
+* Defensive programming
+* Maps
+
+Things we don't think we should include:
+
+* Parallel computing
+* Details memory allocation
+* S3/S4
 
 # foundational R
 
@@ -122,15 +147,20 @@ These aspects of quality good work synergetically or against each other. We will
 
 ### Code profiling in RStudio with profvis
 
-Remember to be pragmatic! You have other things to do, so do not optimize every bit of code. Optimize in proportion to how much the code will be used, and in proportion of how much work is required to achieve meaningful gains.
+profvis estimates both memory and time used by each code element and elements within.
+
 
 ### Memory (RAM) optimizing techniques
 
-Mostly common sense:
+Memory in R is complicated, so we are going to remain practical. 
+If you need to reduce memory use, start by focussing on common sense:
 
+* Assign only the information you need
 * Avoid unnecessary information
 * Avoid duplicated information
 * In extreme cases, write to file and then delete from the environment if something is not needed in RAM but may be useful later
+
+#### Data types
 
 Sometimes it can be good to think about the type of data used to store information. In term of RAM in R:
 
@@ -163,10 +193,75 @@ object.size(many_unique_chr) ; typeof(many_unique_chr)
 
 bool < integer **<<** double < short repeated character strings < very long repeated character strings **<<** unique character strings
 
+#### Implicit object copy
+
+
+
+```{r}
+library(pryr) # to see addresses and measure memory
+
+x <- data.frame(matrix(runif(100 * 1e4), ncol = 100))
+medians <- vapply(x, median, numeric(1))
+
+for(i in 1:5) {
+  x[, i] <- x[, i] - medians[i]
+  print(c(address(x)))
+}
+
+
+```
+
+
+```{r}
+y <- as.list(x)
+
+for(i in 1:5) {
+  y[[i]] <- y[[i]] - medians[i]
+  print(c(address(y)))
+}
+
+object.size(y)
+object.size(x)
+
+```
+
+
+
 ### Speed optimizing techniques
 
 Much more critical in general
 
+#### Avoid copying operations
+
+For loops in R have a reputation for being slow. Often that slowness is because you’re modifying a copy instead of modifying in place.
+
+```{r}
+library(microbenchmark)
+x <- data.frame(matrix(runif(100 * 1e4), ncol = 100))
+medians <- vapply(x, median, numeric(1))
+
+
+#The wrong way: Don't preallocate memory
+results <- x[]
+microbenchmark(for(i in 1:100) {
+  results[, i] <- x[, i] - medians[i]
+})
+
+#
+microbenchmark(for(i in 1:100) {
+  x[, i] <- x[, i] - medians[i]
+})
+
+# even better
+y <- as.list(x)
+microbenchmark(for(i in 1:100) {
+  y[[i]] <- y[[i]] - medians[i]
+})
+
+```
+
+
+Remember to be pragmatic! You have other things to do, so do not optimize every bit of code. Optimize in proportion to how much the code will be used, and in proportion of how much work is required to achieve meaningful gains.
 
 ### Practice
 

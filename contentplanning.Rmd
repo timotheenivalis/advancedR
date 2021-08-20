@@ -16,10 +16,14 @@ output:
 
 Martin's mentioned: 
 
+* Wednesday morning
 * Best practice for clean code, functions and packages
 * Agree on conventions with the team
 * R programming fundamentals
 * No need to cover specifically package creation or shiny (in-house skills)
+* data.table is important given database size
+* Build a function and apply it to a big dataset and make it efficient
+* Think carefully about how to improve a function rather than google for a package that does it in a random way
 
 Questions to clarify:
 

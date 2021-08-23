@@ -1,0 +1,653 @@
+---
+title: "Advanced R: Foundational R"
+author: "Timothée Bonnet & Robert Cope"
+date: "18/08/2021"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    number_sections: true
+    theme: lumen
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+```
+
+In this workshop series we will attempt to work together to improve your R-skills. We assume you already have lots of experience in R, but probably little formal computer science training. 
+
+We do not know everything about R, and it is likely you know better than us solutions to problems you encounter regularly. This will work best if you tell us about what tasks you often need to accomplish, how you do things, propose alternatives to the code we show, and engage with exercises.
+
+Today we will start with presenting some foundations of R coding, going further than what is typically explained in introductions to R. Maybe you know most of this already, probably you do not know it all as none of it is essential to write working code. However, knowing it will help you write more robust and efficient code. In R lots of bugs and unexpected behaviour come from ignoring foundational R structures. 
+
+We will use a little tidyverse and data.table:
+```{r}
+library(tidyverse)
+library(data.table)
+```
+
+
+# Data types Structures
+
+## Elemental data types
+
+There are 6 fundamental types of data in R:
+**logical, integer, double, character**, complex and raw. I assume you don't need the last two, so let's see what they are and not mention them again: 
+
+```{r}
+is.complex(10 + 3i)
+as.complex(1)
+as.raw(14)
+charToRaw("Bytes")
+```
+
+
+Now the types that are useful:
+
+```{r}
+typeof(FALSE)
+
+typeof(c(2L, 10L, 1L))
+
+typeof(c(2,10, 1))
+
+typeof("A")
+```
+
+Note that `numeric` is not really a type but includes integer and double:
+```{r}
+is.numeric(1L)
+is.numeric(1.1)
+
+# as.numeric coerces to double, not integer
+typeof(as.numeric(FALSE))
+```
+
+
+
+An atomic vector can hold only one type. If you try to combine different types they will be coerced into the most flexible one:
+logical < integer < double < character.
+
+```{r}
+str(c("a", 1))
+str(c(TRUE, 1L))
+str(c(TRUE, 1))
+```
+
+If you want to coerce the other way around you need to be explicit about it and you may lose information. It can be useful but in general it is a bit dangerous.
+
+```{r}
+as.logical(2.3)
+as.logical(0)
+as.logical(0.1)
+as.logical(-0.1)
+
+as.integer(1.2)
+
+as.double("A")
+as.double("2.3")
+```
+
+
+## Vectors 
+
+Vectors are the basic data structure in R and there are two types of them: atomic vectors (which we often just call "vectors") and lists. Vectors (in the broad sense) are defined by having one dimension.
+
+Vectors have three properties:
+
+* Type, `typeof()`, what type of fundamental data it contains.
+* Length, `length()`, how many elements it has.
+* Attributes, `attributes()`, optional meta-data.
+
+
+Formally, lists are vectors:
+```{r}
+is.vector(list(c(123)))
+
+#that is why you can create a list with:
+vector(mode = "list", length = 3)
+```
+
+But unlike atomic vectors (which we often call just "vector") they can contain heterogeneous data.
+
+If you need to know whether a data structure is an atomic vector you need to use `is.atomic()`:
+
+```{r}
+x <- list(c("bird1","bird2", "bird3"), c("skink1", "skink2", "skink3", "skink4", "skink5")) # some imput
+
+# A function that does NOT work
+countspecies <- function(x){
+    if(is.vector(x)){
+      size <- length(x)
+    }else{
+      size <- paste0(unlist(lapply(x, function(y) {length(y)})), collapse = " and ")
+    }
+  print(paste("There are", size, "species"))
+}
+
+countspecies(x)
+
+#Also, attributes make it even less reliable:
+x <- list(c("bird1","bird2", "bird3"), c("skink1", "skink2", "skink3", "skink4", "skink5")) # some imput
+attributes(x) <- list(location = "ANU")
+countspecies(x)
+
+
+# A better function
+countspecies2 <- function(x){
+  stopifnot("In countspecies2() the argument x is not a vector or a list"=(is.atomic(x) || is.list(x) ))
+    if(is.atomic(x)){
+      size <- length(x)
+    }else{
+      size <- paste0(unlist(lapply(x, function(y) {length(y)})), collapse = " and ")
+    }
+  print(paste("There are", size, "species"))
+}
+
+countspecies2(x)
+
+```
+
+
+
+### Atomic vectors
+
+You probably know them well, so very briefly, you create them with `c()` or `vector(mode = 'double')`
+
+Atomic vectors are always flat (with a single dimension), even if you nest c():
+
+```{r}
+c(1, c(2, c(3, 4)))
+```
+
+
+### Lists
+
+You create lists with `list()` or `vector(mode='list')`. Lists can contain any data structure and more.
+
+```{r}
+x <- list(1:3, 
+          "a",
+          c(TRUE, FALSE, TRUE),
+          c(2.3, 5.9),
+          f2 = function(a) {a^2}, 
+          list("nested list"), 
+          matrix(NA))
+str(x)
+```
+
+
+Online Quiz.
+Without running the code, predict what is the output of:
+```{r, eval=FALSE}
+c(TRUE, 1L)
+
+length( list( list(1,2,3,4), c(5,6)))
+
+1 == "1"
+
+-1 < FALSE
+```
+
+### Attributes
+
+Vectors, like any R object can have arbitrary additional attributes, used to store metadata about the object. Attributes can be thought of as a named list with unique names. Attributes can be accessed individually with `attr(object, attribute_name)` or all at once (as a list) with `attributes(object)`.
+
+```{r}
+species <- c("fish1", "grass1", "spider1")
+
+attributes(species) <- list(date = as.Date("19/08/2021", "%d/%m/%y"), location = "ACT")
+
+attr(species, "survey_type") <- "incidental"
+
+attributes(species)
+attr(species, which = "date")
+```
+
+Most lists and atomic vectors attributes are not preserved through subsetting or functions, so don't rely on the information being carried forward a pipeline.
+```{r}
+attributes(species[1])
+attributes(length(species))
+attributes(c(species, species))
+```
+
+The only attributes that are (sometimes) preserved through functions are:
+
+* Names
+* Dimensions
+* Class
+
+Each have dedicated functions to access or assign (you can still use attr, but is it not recommended).
+```{r}
+names(species) <- c("Maccullochella", "Themeda", "Atrax")
+dim(species) <- c(1,3,1)
+class(species) 
+class(species) <- "species_array"
+```
+
+Check preserved attributes:
+```{r}
+names( species[1] )
+
+# but here not:
+class(species[1:2])
+# or:
+dim(species[1,,])
+```
+
+### Factors
+
+If you are already familiar with factors in R you may wonder why we mention them at this stage.
+Factors are built on top of **integer vectors** using two attributes: the class, “factor”, which makes them behave differently from regular integer vectors, and the levels, which defines the set of allowed values. 
+
+```{r}
+x <- factor(c("a", "b", "b", "a"))
+x
+
+attributes(x)
+
+class(x)
+levels(x)
+
+str(x) #see the integer values
+```
+
+To be sure you understand how levels and values relate to each other let's consider and discuss the result of each line:
+```{r}
+(f1 <- factor(letters))
+levels(f1) <- rev(levels(f1)); f1
+(f2 <- rev(factor(letters)))
+(f3 <- factor(letters, levels = rev(letters)))
+```
+
+
+## Matrices and arrays
+
+Now we know a lot about vectors you may be happy to learn that it all applies to matrices and arrays.
+Matrices are vectors with two dimensions. Arrays are atomic vectors with two or more dimensions (just be mindful that matrices and arrays can look like vectors if all but one of their dimensions is of size 1... it does not change much but occasionnaly matters.)
+
+```{r}
+x <- 1:9
+dim(x) # A common source of bugs!
+is.matrix(x)
+is.array(x)
+
+dim(x) <- c(3,3)
+is.matrix(x)
+is.array(x)
+
+dim(x) <- c(3,1,3)
+is.matrix(x)
+is.array(x)
+
+x # x now has three dimensions
+
+is.atomic(x) # but still an atomic vector!
+
+```
+
+
+## Data-frames / tibbles / data-tables
+
+Data-frames and derived structures (tibbles, data-tables) are the most common type of data container in R. A data frame is a two dimensional list of vectors with the same size. 
+
+You know them well already, so we are going to cover only some rare features and examples.
+
+Since a data.frame is a list, you may think that you can nest any structure in a list element. You are right, but you need to be explicit about what you are trying to do, using the function `I()`:
+
+Doesn't work:
+```{r, error=TRUE}
+data.frame(x = 1:3, y = list(1:2, 1:3, 1:4))
+```
+
+Works:
+```{r}
+(dt <- data.frame(x = 1:3, y = I(list(1:2, 1:3, 1:4))) ) 
+dt$y
+```
+
+The same is true for tibbles and data-tables since they are an extension of data-frames:
+```{r}
+(dtt <- tibble(x = 1:3, y = I(list(1:2, 1:3, 1:4))) ) 
+
+dtt$y
+
+(dttt  <- data.table(x = 1:3, y = I(list(1:2, 1:3, 1:4))) )
+dttt$y
+```
+
+
+# Subsetting
+
+Subsetting is very common in data wrangling but can be confusing because:
+
+* There are 3 subsetting operators: `[`, `[[``, ` $ ` (+ subsetting functions)
+* 6 types of subsetting (if we work with  `x <- c(a=2.1, b=4.2,c= 3.3,d= 5.4)`:
+    * Positive integers: `x[c(3, 1)]`
+    * Negative integers `x[-c(3, 1)]`
+    * Logical vectors `x[c(TRUE, TRUE, FALSE, FALSE)]` or `x[x > 3]`
+    * Nothing `x[]`
+    * Zero `x[0]` (usually not intended)
+    * Character vectors for named vectors : `x[c("a", "c")]`
+* Different data structures respond differently to subsetting operators; for instance:
+    * `[` return a list whereas `[[` and `$` return the content of a list
+    * `[[NA]]` gives an error for an atomic vector but `NULL` for a list
+
+
+
+### Simplifying vs. preserving subsetting
+
+Simplifying subsetting gives the simplest possible data structure that can represent the output. That is generally what you want when you script because you see more easily the output. However, preserving subsetting retains the structure of the input in the output (so if you extract one column of a data-frame you get a data-frame and not a atomic vector) which is generally safer for programming because it is more predictable.
+
+```{r}
+x <- c(a = 1, b = 2)
+x[1] # preserving
+x[[1]] #simplifying
+```
+
+```{r}
+y <- list(a = 1, b = 2)
+str(y[1]) # preserving
+str(y[[1]])  #simplifying
+```
+
+```{r}
+z <- factor(c("a", "b"))
+z[1] # preserving
+z[1, drop = TRUE] #simplifying
+```
+
+```{r}
+a <- matrix(1:4, nrow = 2)
+a[1, , drop = FALSE] # preserving
+a[1, ] #simplifying
+```
+
+```{r}
+df <- data.frame(a = 1:2, b = 1:2)
+str(df[1])# preserving
+
+str(df[[1]]) #simplifying
+str(df[, "a", drop = FALSE])# preserving
+str(df[, "a"]) #simplifying
+```
+
+
+**Practice:** This function works on the first output but not on the second, why?
+
+```{r, eval=FALSE}
+dat1 <- data.frame(location = sample(letters, size=10, replace = TRUE),
+                   frog.present.2018=as.logical(rbinom(100, 1, 0.1)),
+                   frog.present.2019=as.logical(rbinom(100, 1, 0.2)),
+                   frog.present.2020=as.logical(rbinom(100, 1, 0.25)),
+                   frog.present.2021=as.logical(rbinom(100, 1, 0.4)))
+
+dat2 <- data.frame(Location = sample(LETTERS, size=10, replace = TRUE),
+                   frog.present.2021=as.logical(rbinom(100, 1, 0.4)))
+
+f_count_frogs <- function(x){
+  x <- x[, -1]
+  apply(x, 2, mean)
+}
+
+f_count_frogs(dat1)
+f_count_frogs(dat2)
+
+```
+
+
+
+
+If you work with tibbles you do not have to worry about that though. 
+```{r}
+f_count_frogs_tidy <- function(x){
+  x %>% tibble() %>% summarise(across(where(is.logical), mean))
+}
+
+f_count_frogs_tidy(dat1)
+f_count_frogs_tidy(dat2)
+```
+
+
+# Control flow
+
+### && and || vs. & and |
+
+Use && and || in if statements. Faster and safer as long as you can ensure the tests have length one (or that you are fin with only the first element being used).
+
+```{r error=TRUE}
+x <- c(1:10)
+if(is.matrix(x) && ncol(x)> 6) print("hello") else print("bye")
+if(is.matrix(x) & ncol(x)> 6) print("hello") else print("bye")
+
+```
+
+
+
+# Some practice to do in class in small groups and discuss?
+
+Based on ALA data
+
+```{r, eval=FALSE}
+devtools::install_github("AtlasOfLivingAustralia/galah")
+```
+
+
+```{r, eval=FALSE}
+library(galah)
+galah_config(atlas = "Australia", download_reason_id = 3,verbose = TRUE, email="Bonnettimothee@hotmail.fr")
+
+ala_counts(taxa = select_taxa("Onychophora"))
+
+ala_counts(taxa = select_taxa("Origma solitaria"))
+
+xx <- ala_species(taxa = select_taxa("Origma solitaria"),
+            filters = select_filters(year >= 2010,
+                                                profile = "ALA"))
+
+xx <- ala_occurrences(taxa = select_taxa("Onychophora"),
+            filters = select_filters(profile = "ALA"))
+
+```
+
+1. Build a function that add an attribute for extraction date and time. Try to use a format that is compatible with other date data in the extracted data, and also formally a date. 
+2. Build a function that filters out records that are not at least at the species level, and print how many records were excluded.
+3. Use `select_taxa()` and `ala_counts()` to pick a few taxa you like with not too many records (a few thousands at most). Store those taxa in a list. For each taxon, download data with `ala_occurrences()`, add the extraction date/time attribute (question 1), filter out non-species records (question 2), and calculate the number and proportion of records with a date available for each dataResourceName (within each taxon).
+4. For each taxon, calculate the time between each record and the extraction date/time, and visualise those duration spatially. (Can you see trends in the spatial distribution of records?)
+5. For the two taxa with most records, create a data-frame containing the number of records with dates for each taxon on each year (with years indexing rows).
+
+```{r, echo=FALSE, eval=FALSE}
+
+str(xx)
+
+date()
+attr(xx, which = "ExtractionDate") 
+
+  
+select_taxa(xx$scientificName[1])
+select_taxa(xx$scientificName[2])
+
+sapply(xx$scientificName[1:10], function(x) {select_taxa(x)$family})
+select_taxa(xx$scientificName[1])$family
+
+
+select_taxa(xx$scientificName[1:10])
+
+xx %>% group_by(dataResourceName) %>% filter(eventDate != "") %>% summarise(n())
+xx %>% group_by(dataResourceName) %>% summarise(mean(eventDate != ""), sum(eventDate != ""))
+```
+
+# A bit of data-table
+
+
+## Data.table + tidyverse
+
+It is possible to achieve speed performance close to those of data.table with tidyverse syntax
+
+```{r}
+library(tidyverse)
+library("dtplyr")
+```
+
+
+# Sources and further reading
+
+Advanced R by Hadley Wickham http://adv-r.had.co.nz/ (contains much of what we talked about and more advanced topics)
+
+http://www.burns-stat.com/pages/Tutor/R_inferno.pdf (Careful, this is quite out of date!)
+
+http://swcarpentry.github.io/r-novice-gapminder/ (very introductory but go through it if you feel like you miss basic knowledge on a specific topic^)
+
+<!-- # Data-table -->
+
+<!-- The `data.table` package is popular because it provides a faster alternative to data frames when dealing with large amounts of data. -->
+
+<!-- ```{r} -->
+<!-- library(data.table) -->
+<!-- data("mtcars") -->
+<!-- mtcars$carname <- rownames(mtcars) -->
+<!-- setDT(mtcars) -->
+
+<!-- mtcars[mpg>20, 1:11, carb] -->
+<!-- mtcars[mpg>20, 1:11] -->
+<!-- mtcars[mpg>20, 1:10] -->
+
+
+<!-- myvar <- "mpg" -->
+<!-- mtcars[,myvar, with=F] -->
+<!-- mtcars[, ..myvar] -->
+
+<!-- mtcars[, 1 , with=F] -->
+<!-- mtcars[, 1] -->
+
+<!-- DT <- data.table(A=1:5) -->
+<!-- DT[ , X := shift(A, 1, type="lag")] -->
+<!-- DT[ , Y := shift(A, 1, type="lead")] -->
+<!-- shift() -->
+
+<!-- mtcars[, cyl_gear2 := cyl + gear] -->
+
+<!-- myvar <- c('var1') -->
+<!-- mtcars[, (myvar):=1] -->
+
+<!-- mtcars[, c("myvar", "..myvar", "var1") := NULL] -->
+
+<!-- mtcars[, mileage_type := ifelse(mpg>20, "high", "low")] -->
+
+<!-- mtcars[, .(mean_mileage=mean(mpg)), by=cyl] -->
+<!-- mtcars[, mean_mileage:=mean(mpg), by=cyl] -->
+
+<!-- mtcars[, .I] -->
+<!-- mtcars[, .N] -->
+
+<!-- mtcars[, .I[cyl==6]] -->
+<!-- mtcars[, which(cyl==6)] -->
+
+<!-- #Compute the number of cars and the mean mileage for each gear type. -->
+
+<!-- mtcars[,c(.N, .(mean_mileage=round(mean(mpg),2))), by=gear] -->
+
+<!-- mtcars[, .(.N, mileage=mean(mpg) %>% round(2)), by=gear] -->
+
+<!-- mtcars[, .(mean_mpg=mean(mpg), -->
+<!--                      mean_disp=mean(disp), -->
+<!--                      mean_wt=mean(wt), -->
+<!--                      mean_qsec=mean(qsec)), by=cyl][order(mean_mpg), ] -->
+
+<!-- mtcars[, .SD, by=cyl] -->
+
+<!-- mtcars[, lapply(.SD[, 1:10, with=F], mean), by=cyl] -->
+
+<!-- mtcars[, lapply(.SD[, -12, with=F], mean), by=cyl] -->
+
+<!-- setkey(mtcars, carname) -->
+
+<!-- key(mtcars) -->
+
+
+<!-- dt1 <- mtcars[,.(carname, mpg, cyl)] -->
+<!-- dt2 <- mtcars[1:10, .(carname, gear)] -->
+
+<!-- dt1[dt2] -->
+
+<!-- dcast.data.table(mtcars, cyl ~ carb, fun.aggregate = list(min, max), value.var = 'mpg') -->
+<!-- dcast.data.table(mtcars, carb ~cyl , fun.aggregate =function(x) max(x)-min(x), value.var = 'mpg') -->
+
+
+<!-- m = matrix(1,nrow=100000,ncol=100) -->
+<!-- DF = as.data.frame(m) -->
+<!-- DT = as.data.table(m)     -->
+
+<!-- rnorm(n = ) -->
+
+<!-- system.time(for (i in 1:10000) DF[i,1] <- i) -->
+<!-- #> 1.11 seconds -->
+<!-- system.time(for (i in 1:10000) DT[i,V1:=i]) -->
+<!-- #> 2.21 seconds  ( -->
+<!-- system.time(for (i in 1:10000) set(DT,i,1L,i)) -->
+<!-- #> 0.018 seconds -->
+
+<!-- system.time(for (i in 1:10000) set(DF,i,1L,i)) -->
+
+<!-- system.time(DF %>% mutate(V1=1:100000)) -->
+
+<!-- system.time(DF[,1L] <- 1:100000) -->
+<!-- system.time(DT[,1L] <- 1:100000) -->
+
+
+<!-- xx <- DF %>% select(V1) %>% mutate(V1=rnorm(100000)) %>% tibble() -->
+<!-- xx -->
+
+<!-- system.time(DF %>% select(V1) %>% mutate(V1=rnorm(100000)) %>% tibble()) -->
+
+
+<!-- system.time(DF %>% select(V1) %>% mutate(V1=rnorm(100000), -->
+<!--                                          V2=rnorm(100000), -->
+<!--                                          V3=rnorm(100000), -->
+<!--                                          V4=rnorm(100000), -->
+<!--                                          V5=rnorm(100000), -->
+<!--                                          V6=rnorm(100000), -->
+<!--                                          V7=rnorm(100000), -->
+<!--                                          V8=rnorm(100000))) -->
+
+
+<!-- Dtib <- tibble(DF) -->
+<!-- system.time(Dtib %>% select(V1) %>% mutate(V1=rnorm(100000), -->
+<!--                                          V2=rnorm(100000), -->
+<!--                                          V3=rnorm(100000), -->
+<!--                                          V4=rnorm(100000), -->
+<!--                                          V5=rnorm(100000), -->
+<!--                                          V6=rnorm(100000), -->
+<!--                                          V7=rnorm(100000), -->
+<!--                                          V8=rnorm(100000))) -->
+
+<!-- dt <- lazy_dt(DF) -->
+
+<!-- system.time(dt %>% select(V1) %>% mutate(V1=rnorm(100000), -->
+<!--                                          V2=rnorm(100000), -->
+<!--                                          V3=rnorm(100000), -->
+<!--                                          V4=rnorm(100000), -->
+<!--                                          V5=rnorm(100000), -->
+<!--                                          V6=rnorm(100000), -->
+<!--                                          V7=rnorm(100000), -->
+<!--                                          V8=rnorm(100000))) -->
+
+<!-- ``` -->
+
+
+
+
+
+<!-- ```{r} -->
+<!-- box_extents <- expand.grid( -->
+<!--   x_min = seq(110, 154, 1), -->
+<!--   y_min = seq(-45, -9, 1)) -->
+<!-- box_extents$x_max <- box_extents$x_min + 1 -->
+<!-- box_extents$y_max <- box_extents$y_min + 1 -->
+
+<!-- # extract CAPAD within each degree square -->
+<!-- extent_list <- split(box_extents, seq_len(nrow(box_extents))) -->
+<!-- ``` -->
+

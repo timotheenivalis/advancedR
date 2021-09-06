@@ -248,11 +248,11 @@ div.tocify {
 
 
 <p>In this workshop series we will attempt to work together to improve your R-skills. We assume you already have lots of experience in R, but probably little formal computer science training.</p>
-<p>We do not know everything about R, and it is likely you know better than us solutions to problems you encounter regularly.</p>
+<p>We do not know everything about R, and it is likely you know better than us solutions to problems you encounter regularly. This will work best if you tell us about what tasks you often need to accomplish, how you do things, propose alternatives to the code we show, and engage with exercises.</p>
+<p>Today we will start with presenting some foundations of R coding, going further than what is typically explained in introductions to R. Maybe you know most of this already, probably you do not know it all as none of it is essential to write working code. However, knowing it will help you write more robust and efficient code. In R lots of bugs and unexpected behaviour come from ignoring foundational R structures.</p>
 <p>We will use a little tidyverse and data.table:</p>
 <pre class="r"><code>library(tidyverse)
 library(data.table)</code></pre>
-<p>You can use R for decades without knowing the following. But knowing it will help you write robust and efficient code. In R lots of bugs and unexpected behaviour come from ignoring foundational R structures.</p>
 <div id="data-types-structures" class="section level1" number="1">
 <h1 number="1"><span class="header-section-number">1</span> Data types Structures</h1>
 <div id="elemental-data-types" class="section level2" number="1.1">
@@ -388,7 +388,7 @@ str(x)</code></pre>
 ##  $   : num [1:2] 2.3 5.9
 ##  $ f2:function (a)  
 ##   ..- attr(*, &quot;srcref&quot;)= &#39;srcref&#39; int [1:8] 5 16 5 32 16 32 5 5
-##   .. ..- attr(*, &quot;srcfile&quot;)=Classes &#39;srcfilecopy&#39;, &#39;srcfile&#39; &lt;environment: 0x55d743681960&gt; 
+##   .. ..- attr(*, &quot;srcfile&quot;)=Classes &#39;srcfilecopy&#39;, &#39;srcfile&#39; &lt;environment: 0x55f4edff70e8&gt; 
 ##  $   :List of 1
 ##   ..$ : chr &quot;nested list&quot;
 ##  $   : logi [1, 1] NA</code></pre>
@@ -598,10 +598,86 @@ is.matrix(x)</code></pre>
 <li>Zero <code>x[0]</code> (usually not intended)</li>
 <li>Character vectors for named vectors : <code>x[c(&quot;a&quot;, &quot;c&quot;)]</code></li>
 </ul></li>
-<li>Different data structures respond differently to subsetting</li>
+<li>Different data structures respond differently to subsetting operators; for instance:
+<ul>
+<li><code>[</code> return a list whereas <code>[[</code> and <code>$</code> return the content of a list</li>
+<li><code>[[NA]]</code> gives an error for an atomic vector but <code>NULL</code> for a list</li>
+</ul></li>
 </ul>
 <div id="simplifying-vs.-preserving-subsetting" class="section level3" number="2.0.1">
 <h3 number="2.0.1"><span class="header-section-number">2.0.1</span> Simplifying vs. preserving subsetting</h3>
+<p>Simplifying subsetting gives the simplest possible data structure that can represent the output. That is generally what you want when you script because you see more easily the output. However, preserving subsetting retains the structure of the input in the output (so if you extract one column of a data-frame you get a data-frame and not a atomic vector) which is generally safer for programming because it is more predictable.</p>
+<pre class="r"><code>x &lt;- c(a = 1, b = 2)
+x[1] # preserving</code></pre>
+<pre><code>## a 
+## 1</code></pre>
+<pre class="r"><code>x[[1]] #simplifying</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre class="r"><code>y &lt;- list(a = 1, b = 2)
+str(y[1]) # preserving</code></pre>
+<pre><code>## List of 1
+##  $ a: num 1</code></pre>
+<pre class="r"><code>str(y[[1]])  #simplifying</code></pre>
+<pre><code>##  num 1</code></pre>
+<pre class="r"><code>z &lt;- factor(c(&quot;a&quot;, &quot;b&quot;))
+z[1] # preserving</code></pre>
+<pre><code>## [1] a
+## Levels: a b</code></pre>
+<pre class="r"><code>z[1, drop = TRUE] #simplifying</code></pre>
+<pre><code>## [1] a
+## Levels: a</code></pre>
+<pre class="r"><code>a &lt;- matrix(1:4, nrow = 2)
+a[1, , drop = FALSE] # preserving</code></pre>
+<pre><code>##      [,1] [,2]
+## [1,]    1    3</code></pre>
+<pre class="r"><code>a[1, ] #simplifying</code></pre>
+<pre><code>## [1] 1 3</code></pre>
+<pre class="r"><code>df &lt;- data.frame(a = 1:2, b = 1:2)
+str(df[1])# preserving</code></pre>
+<pre><code>## &#39;data.frame&#39;:    2 obs. of  1 variable:
+##  $ a: int  1 2</code></pre>
+<pre class="r"><code>str(df[[1]]) #simplifying</code></pre>
+<pre><code>##  int [1:2] 1 2</code></pre>
+<pre class="r"><code>str(df[, &quot;a&quot;, drop = FALSE])# preserving</code></pre>
+<pre><code>## &#39;data.frame&#39;:    2 obs. of  1 variable:
+##  $ a: int  1 2</code></pre>
+<pre class="r"><code>str(df[, &quot;a&quot;]) #simplifying</code></pre>
+<pre><code>##  int [1:2] 1 2</code></pre>
+<p><strong>Practice:</strong> This function works on the first output but not on the second, why?</p>
+<pre class="r"><code>dat1 &lt;- data.frame(location = sample(letters, size=10, replace = TRUE),
+                   frog.present.2018=as.logical(rbinom(100, 1, 0.1)),
+                   frog.present.2019=as.logical(rbinom(100, 1, 0.2)),
+                   frog.present.2020=as.logical(rbinom(100, 1, 0.25)),
+                   frog.present.2021=as.logical(rbinom(100, 1, 0.4)))
+
+dat2 &lt;- data.frame(Location = sample(LETTERS, size=10, replace = TRUE),
+                   frog.present.2021=as.logical(rbinom(100, 1, 0.4)))
+
+f_count_frogs &lt;- function(x){
+  x &lt;- x[, -1]
+  apply(x, 2, mean)
+}
+
+f_count_frogs(dat1)</code></pre>
+<pre><code>## frog.present.2018 frog.present.2019 frog.present.2020 frog.present.2021 
+##              0.10              0.19              0.28              0.39</code></pre>
+<pre class="r"><code>f_count_frogs(dat2)</code></pre>
+<pre><code>## Error in apply(x, 2, mean): dim(X) must have a positive length</code></pre>
+<p>If you work with tibbles you do not have to worry about that though.</p>
+<pre class="r"><code>f_count_frogs_tidy &lt;- function(x){
+  x %&gt;% tibble() %&gt;% summarise(across(where(is.logical), mean))
+}
+
+f_count_frogs_tidy(dat1)</code></pre>
+<pre><code>## # A tibble: 1 × 4
+##   frog.present.2018 frog.present.2019 frog.present.2020 frog.present.2021
+##               &lt;dbl&gt;             &lt;dbl&gt;             &lt;dbl&gt;             &lt;dbl&gt;
+## 1               0.1              0.19              0.28              0.39</code></pre>
+<pre class="r"><code>f_count_frogs_tidy(dat2)</code></pre>
+<pre><code>## # A tibble: 1 × 1
+##   frog.present.2021
+##               &lt;dbl&gt;
+## 1              0.41</code></pre>
 </div>
 </div>
 <div id="control-flow" class="section level1" number="3">
@@ -614,6 +690,47 @@ if(is.matrix(x) &amp;&amp; ncol(x)&gt; 6) print(&quot;hello&quot;) else print(&q
 <pre><code>## [1] &quot;bye&quot;</code></pre>
 <pre class="r"><code>if(is.matrix(x) &amp; ncol(x)&gt; 6) print(&quot;hello&quot;) else print(&quot;bye&quot;)</code></pre>
 <pre><code>## Error in if (is.matrix(x) &amp; ncol(x) &gt; 6) print(&quot;hello&quot;) else print(&quot;bye&quot;): argument is of length zero</code></pre>
+</div>
+</div>
+<div id="some-practice-to-do-in-class-in-small-groups-and-discuss" class="section level1" number="4">
+<h1 number="4"><span class="header-section-number">4</span> Some practice to do in class in small groups and discuss?</h1>
+<p>Based on ALA data</p>
+<pre class="r"><code>devtools::install_github(&quot;AtlasOfLivingAustralia/galah&quot;)</code></pre>
+<pre class="r"><code>library(galah)
+galah_config(atlas = &quot;Australia&quot;, download_reason_id = 3,verbose = TRUE, email=&quot;Bonnettimothee@hotmail.fr&quot;)
+
+ala_counts(taxa = select_taxa(&quot;Onychophora&quot;))
+
+ala_counts(taxa = select_taxa(&quot;Origma solitaria&quot;))
+
+xx &lt;- ala_species(taxa = select_taxa(&quot;Origma solitaria&quot;),
+            filters = select_filters(year &gt;= 2010,
+                                                profile = &quot;ALA&quot;))
+
+xx &lt;- ala_occurrences(taxa = select_taxa(&quot;Onychophora&quot;),
+            filters = select_filters(profile = &quot;ALA&quot;))</code></pre>
+<ol style="list-style-type: decimal">
+<li>Build a function that add an attribute for extraction date and time. Try to use a format that is compatible with other date data in the extracted data, and also formally a date.</li>
+<li>Build a function that filters out records that are not at least at the species level, and print how many records were excluded.</li>
+<li>Use <code>select_taxa()</code> and <code>ala_counts()</code> to pick a few taxa you like with not too many records (a few thousands at most). Store those taxa in a list. For each taxon, download data with <code>ala_occurrences()</code>, add the extraction date/time attribute (question 1), filter out non-species records (question 2), and calculate the number and proportion of records with a date available for each dataResourceName (within each taxon).</li>
+<li>For each taxon, calculate the time between each record and the extraction date/time, and visualise those duration spatially. (Can you see trends in the spatial distribution of records?)</li>
+<li>For the two taxa with most records, create a data-frame containing the number of records with dates for each taxon on each year (with years indexing rows).</li>
+</ol>
+</div>
+<div id="a-bit-of-data-table" class="section level1" number="5">
+<h1 number="5"><span class="header-section-number">5</span> A bit of data-table</h1>
+<div id="data.table-tidyverse" class="section level2" number="5.1">
+<h2 number="5.1"><span class="header-section-number">5.1</span> Data.table + tidyverse</h2>
+<p>It is possible to achieve speed performance close to those of data.table with tidyverse syntax</p>
+<pre class="r"><code>library(tidyverse)
+library(&quot;dtplyr&quot;)</code></pre>
+</div>
+</div>
+<div id="sources-and-further-reading" class="section level1" number="6">
+<h1 number="6"><span class="header-section-number">6</span> Sources and further reading</h1>
+<p>Advanced R by Hadley Wickham <a href="http://adv-r.had.co.nz/" class="uri">http://adv-r.had.co.nz/</a> (contains much of what we talked about and more advanced topics)</p>
+<p><a href="http://www.burns-stat.com/pages/Tutor/R_inferno.pdf" class="uri">http://www.burns-stat.com/pages/Tutor/R_inferno.pdf</a> (Careful, this is quite out of date!)</p>
+<p><a href="http://swcarpentry.github.io/r-novice-gapminder/" class="uri">http://swcarpentry.github.io/r-novice-gapminder/</a> (very introductory but go through it if you feel like you miss basic knowledge on a specific topic^)</p>
 <!-- # Data-table -->
 <!-- The `data.table` package is popular because it provides a faster alternative to data frames when dealing with large amounts of data. -->
 <!-- ```{r} -->
@@ -705,12 +822,6 @@ if(is.matrix(x) &amp;&amp; ncol(x)&gt; 6) print(&quot;hello&quot;) else print(&q
 <!--                                          V7=rnorm(100000), -->
 <!--                                          V8=rnorm(100000))) -->
 <!-- ``` -->
-<!-- ## Data.table + tidyverse  -->
-<!-- It is possible to achieve speed performance close to those of data.table with tidyverse syntax -->
-<!-- ```{r} -->
-<!-- library(tidyverse) -->
-<!-- library("dtplyr") -->
-<!-- ``` -->
 <!-- ```{r} -->
 <!-- box_extents <- expand.grid( -->
 <!--   x_min = seq(110, 154, 1), -->
@@ -720,7 +831,6 @@ if(is.matrix(x) &amp;&amp; ncol(x)&gt; 6) print(&quot;hello&quot;) else print(&q
 <!-- # extract CAPAD within each degree square -->
 <!-- extent_list <- split(box_extents, seq_len(nrow(box_extents))) -->
 <!-- ``` -->
-</div>
 </div>
 
 

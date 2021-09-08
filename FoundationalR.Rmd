@@ -18,8 +18,6 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 
 # Introduction
 
-## Introduce yourself, what you would like to get of this course, in a minute.
-
 ## What this is about
 
 In this workshop series we will attempt to work together to improve your R-skills. We assume you already have lots of experience in R, but probably little formal computer science training. 
@@ -36,36 +34,7 @@ The current plan for the four sessions:
 But above all the plan is to try and be flexible. Ask us if we need to cover something else, tell us if something is too simple, don't hesitate to tell how you approach a problem differently from us...
 
 
-# Pre-workshop exercises
-
-Before diving into the course we would like to discuss the pre-course questions. Which solutions do you like/dislike? Did you learn new tools or could not find the right tool?
-
-1. Load the data at https://timotheenivalis.github.io/data/gapminder_wide.csv (if possible using R code)
-
-```{r}
-
-#1. From R studio, create a project
-dir.create("RawData") # folder for external, untreated data only. 
-download.file(url = "https://timotheenivalis.github.io/data/gapminder_wide.csv",
-              destfile = "RawData/gapminder_wide.csv")# Could download manually.
-gapminder <- read_csv("RawData/gapminder_wide.csv") # can also use read.csv()
-
-#or
-gapminder <- read.csv("https://timotheenivalis.github.io/data/gapminder_wide.csv")
-#Pro and cons?
-```
-
-
-2. Transform the dataset from a wide into a long format retaining all the data but where the only columns are: `continent`, `country`, `year`, `pop`,  `lifeExp`, `gdpPercap`. That one is a bit tricky, so if you don't manage the output is at https://timotheenivalis.github.io/data/gapminder_data.csv
-
-```{r}
-
-```
-
-
-3. In a single graph plot the relationships between lifeExp and gdpPercap in each country, but only for data after the year 1990 and for Africa and Asia only.
-4. Split the data set by years into 12 datasets stored in a list
-5. Write some code that takes each of the newly formed X datasets and output the number of rows, and mean and variance of pop, and write them into a separate file.
+## Introduce yourself, what you would like to get of this course, in a minute.
 
 
 # Foundational R
@@ -315,21 +284,20 @@ levels(f1) <- rev(levels(f1)); f1
 
 ### Small practice
 
-Without running the code, try predicting the output of the 3 following expressions:
+<!-- Without running the code, try predicting the output of the 3 following expressions: -->
 
-```{r, eval=FALSE}
-c(TRUE, 1L)
-c(2.1, FALSE, 3)
-c(NA, TRUE, "1")
-```
+<!-- ```{r, eval=FALSE} -->
+<!-- c(TRUE, 1L) -->
+<!-- c(2.1, FALSE, 3) -->
+<!-- c(NA, TRUE, "1") -->
+<!-- ``` -->
 
-```{r, eval=FALSE}
-x <- c(1,3,2)
-dim(x)
-attr(x, which = "dimension") <- 1
-attr(x, which = "dim") <- 1
-
-```
+<!-- What does this code return? -->
+<!-- ```{r, eval=FALSE} -->
+<!-- x <- c(1,3,2,4) -->
+<!-- dim(x) <- c(2,2) -->
+<!-- x -->
+<!-- ``` -->
 
 
 ## Matrices and arrays
@@ -383,7 +351,7 @@ The same is true for tibbles and data-tables since they are an extension of data
 
 dtt$y
 
-(dttt  <- data.table(x = 1:3, y = I(list(1:2, 1:3, 1:4))) )
+(dttt  <- data.table::data.table(x = 1:3, y = I(list(1:2, 1:3, 1:4))) )
 dttt$y
 ```
 
@@ -480,83 +448,50 @@ f_count_frogs(dat2)
 ```
 
 
-If you work with tibbles you do not have to worry about that though. 
-```{r}
+By the way, if you work with tibbles you do not have to worry about that simplifying subset 
+```{r, error=TRUE}
+dat1 <- data.frame(location = sample(letters, size=10, replace = TRUE),
+                   frog.present.2018=as.logical(rbinom(100, 1, 0.1)),
+                   frog.present.2019=as.logical(rbinom(100, 1, 0.2)),
+                   frog.present.2020=as.logical(rbinom(100, 1, 0.25)),
+                   frog.present.2021=as.logical(rbinom(100, 1, 0.4)))
+
+dat2 <- data.frame(Location = sample(LETTERS, size=10, replace = TRUE),
+                   frog.present.2021=as.logical(rbinom(100, 1, 0.4)))
+
+f_count_frogs <- function(x){
+  x <- x[, -1]
+  apply(x, 2, mean)
+}
+
+f_count_frogs(dat1)
+f_count_frogs(dat2)
+
 f_count_frogs_tidy <- function(x){
-  x %>% tibble() %>% summarise(across(where(is.logical), mean))
+  x %>% tibble() %>% summarise(across(where(is.logical), mean)) 
 }
 
 f_count_frogs_tidy(dat1)
 f_count_frogs_tidy(dat2)
 ```
 
-### A little bit of dyplr
+the function `where` is similar to `which`, and `across` select is valid column one by one to apply the function mean.
 
-The package dyplr offers lots of efficient shortcuts in data wrangling. The syntax is completely different from most of base-R, 
+### Small practice
 
-filter
-group_by + summarise
-pivot_longer / pivot_wider
 
+What does this code return and why?
 ```{r}
+data <- data.frame(location = letters[1:5], date = date(),
+           species1=c(9,8,3,7,10), species2 = c(2,3,1,4,5), species3= 0)
+
+tosubset <- factor(x = c("species3"))
+
+data[, tosubset]
 
 ```
 
 
-
-
-# Some practice to do in class in small groups and discuss
-
-Based on ALA data
-
-```{r, eval=FALSE}
-devtools::install_github("AtlasOfLivingAustralia/galah")
-```
-
-
-```{r, eval=FALSE}
-library(galah)
-galah_config(atlas = "Australia", download_reason_id = 3,verbose = TRUE, email="Bonnettimothee@hotmail.fr")
-
-ala_counts(taxa = select_taxa("Onychophora"))
-
-ala_counts(taxa = select_taxa("Origma solitaria"))
-
-# xx <- ala_species(taxa = select_taxa("Origma solitaria"),
-#             filters = select_filters(year >= 2010,
-#                                                 profile = "ALA"))
-
-xx <- ala_occurrences(taxa = select_taxa("Onychophora"),
-            filters = select_filters(profile = "ALA"))
-
-```
-
-1. Build a function that add an attribute for extraction date and time. Try to use a format that is compatible with other date data in the extracted data, and also formally a date. 
-2. Build a function that filters out records that are not at least at the species level, and print how many records were excluded.
-3. Use `select_taxa()` and `ala_counts()` to pick a few taxa you like with not too many records (a few thousands at most). Store those taxa in a list. For each taxon, download data with `ala_occurrences()`, add the extraction date/time attribute (question 1), filter out non-species records (question 2), and calculate the number and proportion of records with a date available for each dataResourceName (within each taxon).
-4. For each taxon, calculate the time between each record and the extraction date/time, and visualise those duration spatially. (Can you see trends in the spatial distribution of records?)
-5. For the two taxa with most records, create a data-frame containing the number of records with dates for each taxon on each year (with years indexing rows).
-
-```{r, echo=FALSE, eval=FALSE}
-
-str(xx)
-
-date()
-attr(xx, which = "ExtractionDate") 
-
-  
-select_taxa(xx$scientificName[1])
-select_taxa(xx$scientificName[2])
-
-sapply(xx$scientificName[1:10], function(x) {select_taxa(x)$family})
-select_taxa(xx$scientificName[1])$family
-
-
-select_taxa(xx$scientificName[1:10])
-
-xx %>% group_by(dataResourceName) %>% filter(eventDate != "") %>% summarise(n())
-xx %>% group_by(dataResourceName) %>% summarise(mean(eventDate != ""), sum(eventDate != ""))
-```
 
 
 # Control flow
@@ -593,6 +528,24 @@ repeat{
 ```
 
 
+For-loops can be interrupted for one iteration or fully:
+
+```{r}
+for (i in 1:10) {
+  if (i < 3)
+    next #skip this iteration
+
+  print(i)
+
+  if (i >= 5)
+    {
+    break # end for-loop
+  }
+  print("end")
+}
+```
+
+
 ### Tips for better loops
 
 1. Allocate container before loops (as much as possible)
@@ -603,7 +556,7 @@ a <- rnorm(10^8)
 b <- vector(length = length(a))
 for(i in 1:length(a))
 {
-  b[i] <- a[i] + 1  
+  b[i] <- a[i] + 1
 }
 })
 
@@ -612,7 +565,7 @@ a <- rnorm(10^8)
 b <- vector() # Not good!
 for(i in 1:length(a))
 {
-  b[i] <- a[i] + 1  
+  b[i] <- a[i] + 1
 }
 }) # 3-fold increase on my computer
 
@@ -655,7 +608,7 @@ b #cleaner, more predictable
 
 
 
-*Digression: Loops are often not the most efficient way to achieve a goal, especially in term of typing. They are generally disliked by a portion of R-coders. Nevertheless they can provide more flexibility than shorter alternatives, sometimes can be more explicit about what the code is really doing, and can give you a way out of difficult problems. Also, part of the loop bad reputation is based on prejudice or on the behaviour of older R-versions. In the past, data were copied within loop iterations, a process that was extremely slow, and apply-functions were then much more efficient. However, from at least R-3, provided you create a container before a loop, loops are as efficient (or more) than apply-functions. Similarly, R-4 has invalidated some old recommendations that applied for R-3; for instance, '[<-' has become much more efficient and does not need to be avoided as much within loops. Keep in mind that R is evolving, so what you know today may not be fully valid in 3 years from now.* 
+*Digression: Loops are often not the most efficient way to achieve a goal, especially in term of typing. They are generally disliked by a portion of R-coders. Nevertheless they can provide more flexibility than shorter alternatives, sometimes can be more explicit about what the code is really doing, and can give you a way out of difficult problems. Also, part of the loop bad reputation is based on prejudice or on the behaviour of older R-versions. In the past, data were copied within loop iterations, a process that was extremely slow, and apply-functions were then much more efficient. However, from at least R-3, provided you create a container before a loop, loops are as efficient (or more) than apply-functions. Similarly, R-4 has invalidated some old recommendations that applied for R-3; for instance, '[<-' has become much more efficient and does not need to be avoided as much within loops. Keep in mind that R is evolving, so what you know today may not be fully valid in 3 years from now.*
 
 ## Tests
 
@@ -668,12 +621,6 @@ if (condition) true_action else false_action
 ifelse(vector_of_conditions, true, false)
 ```
 
-Small practice:
-
-```{r}
-
-```
-
 
 ### switch
 
@@ -683,7 +630,7 @@ x_option <- function(x) {
   if (x == "a") {
     "option 1"
   } else if (x == "b") {
-    "option 2" 
+    "option 2"
   } else if (x == "c") {
     "option 3"
   } else {
@@ -708,7 +655,7 @@ The last component of a `switch()` (and nested `if{}else{if {}else{}` } ) should
 
 ### && and || vs. & and |
 
-Use && and || in if statements. Faster and safer as long as you can ensure the tests have length one (or that you are fin with only the first element being used). 
+Because `if` evaluates a single test, you should use && and || in if statements. Faster and safer as long as you can ensure the tests have length one (or that you are fin with only the first element being used).
 
 ```{r, error=TRUE}
 x <- c(1:10)
@@ -717,21 +664,451 @@ if(is.matrix(x) & ncol(x)> 6) print("hello") else print("bye")
 
 ```
 
-Avoids the use of special cases tests before running the main test:
+Avoids the use of special cases tests before running the main test. Imagine that for some reason you need to compute the median of the second parameter of many data-sets and you do not much about them.
 
 ```{r, error=TRUE}
+input <- list(mtcars,InsectSprays, Orange[,1, drop=F], volcano, data.frame(NULL), Titanic)
 
-input <- list()
-for( i in seq_along(input))
+for(i in seq_along(input))
+{
+  print(paste("dt", i, "median=", median(input[[i]][,2])))
+} #error, we need to check is.numeric!
+
+for(i in seq_along(input))
+{
+  if(is.numeric(input[[i]][,2]))
+  {
+    print(paste("dt", i))
+    print(paste("median=", median(input[[i]][,2])))
+  }
+} # error, we need to check dimensions!
+
+for(i in seq_along(input))
+{
+  if(is.numeric(input[[i]][,2]) && ncol(input[[i]])>=2)
+  {
+    print(paste("dt", i))
+    print(paste("median=", median(input[[i]][,2])))
+  }
+} # error, the first test cannot work if the second is false!
+
+for(i in seq_along(input))
+{
+  if(ncol(input[[i]])>=2 && is.numeric(input[[i]][,2])) # turn around the conditions, the first test protect the second one!
+  {
+    print(paste("dt", i))
+    print(paste("median=", median(input[[i]][,2])))
+  }
+} # error because last element is an array, which breaks the second test again
+
+for(i in seq_along(input))
+{
+  if(is.data.frame(input[[i]]) && ncol(input[[i]])>=2 && is.numeric(input[[i]][,2]))
+  {
+    print(paste("dt", i))
+    print(paste("median=", median(input[[i]][,2])))
+  }
+} # now all tests are protected.
 
 ```
 
-### Practice
 
+```{r}
+x <- 1:12
+ifelse(x %% 2 == 0, "even", "odd") # divisible by 2?
+ifelse(x %% 2 == 0 & x %% 3 ==0, 1, 0)# divisible by 2 and 3?
+ifelse(x %% 2 == 0 | x %% 3 ==0, 1, 0)# divisible by 2 or 3?
+
+ifelse(x %% 2 == 0 && x %% 3 ==0, 1, 0) # not correct
+ifelse(x %% 2 == 0 || x %% 3 ==0, 1, 0) # not correct
+```
+
+
+### Small Practice
+
+```{r}
+nb_parameters <- 3
+variances <- runif(n = nb_parameters, min = 0.1, max = 1)
+correlations <- runif(n=nb_parameters*(nb_parameters-1)/2, min = -0.99, max=0.99)
+```
+
+Use control flow to build the matrix with the variances on the diagonal and the correlations in symmetrical off-diagonal positions (you are also allowed subset, assign and arithmetic operations). For instance for 3 parameters:
+
+```{r, echo=FALSE}
+matrix(c("A", "B", "C",
+         "B",  "D", "E",
+         "C", "E", "F" ), nrow = 3)
+```
+ where `"A", "D", "F"` are variances and the other letters are correlations.
+
+
+```{r, echo=FALSE}
+count <- 1
+mat <- diag(nb_parameters)
+for (i in 1:nb_parameters)
+{
+  for (j in 1:i)
+    {
+    if(i!=j)
+      {
+      mat[i,j] <- mat[j,i] <- correlations[count]
+      count <- count+1
+    }else{
+        mat[i,j] <- variances[i] #could be before the j-loop
+      }
+  }
+}
+mat
+```
+
+
+<!-- # Exercise to finish -->
+
+<!-- Based on ALA data -->
+
+<!-- ```{r, eval=FALSE} -->
+<!-- devtools::install_github("AtlasOfLivingAustralia/galah") -->
+<!-- ``` -->
+
+
+<!-- ```{r, eval=FALSE} -->
+<!-- library(galah) -->
+<!-- galah_config(atlas = "Australia", download_reason_id = 3,verbose = TRUE, email="Bonnettimothee@hotmail.fr") -->
+
+<!-- ala_counts(taxa = select_taxa("Onychophora")) -->
+
+<!-- ala_counts(taxa = select_taxa("Origma solitaria")) -->
+
+<!-- # xx <- ala_species(taxa = select_taxa("Origma solitaria"), -->
+<!-- #             filters = select_filters(year >= 2010, -->
+<!-- #                                                 profile = "ALA")) -->
+
+<!-- xx <- ala_occurrences(taxa = select_taxa("Onychophora"), -->
+<!--             filters = select_filters(profile = "ALA")) -->
+<!-- write.csv(xx, "Data/onychophora") -->
+
+<!-- xx <- read.csv("https://timotheenivalis.github.io/data/onychophora.csv") -->
+
+<!-- ``` -->
+
+1. Write some code that add an attribute for extraction date and time. Try to use a format that is compatible with other date data in the extracted data, and also formally a date.
+2. Write some code  that filters out records that are not at least at the species level, and print how many records were excluded.
+3. For each taxon, calculate the time between the last record and the extraction date/time, and visualise those duration spatially. (Can you see trends in the spatial distribution of records?)
+4. For the two taxa with most records, create a data-frame containing the number of records with dates for each taxon on each year (with years indexing rows).
+
+```{r, echo=FALSE, eval=FALSE}
+# 1.
+onych <- read.csv("https://timotheenivalis.github.io/data/onychophora.csv")
+attr(onych, which = "date") <- Sys.Date()
+str(onych)
+onych$eventDate <- as.Date(onych$eventDate)
+typeof(attr(onych, which = "date"))
+as.double(attr(onych, which = "date"))
+
+# 2.
+species <- unlist(lapply(strsplit(onych$scientificName, split = " "), length))>=2
+onychsp <- onych[species,]
+# or using stringr
+str_detect(string = onych$scientificName, pattern = " ")
+
+# 3.
+onychsp$duration <- attr(onychsp, which = "date") - onychsp$eventDate
+
+#to be completed
+```
+
+<!-- ```{r} -->
+<!-- xx %>% group_by(dataResourceName) %>% filter(eventDate != "") %>% summarise(n()) -->
+<!-- xx %>% group_by(dataResourceName) %>% summarise(mean(eventDate != ""), sum(eventDate != "")) -->
+<!-- ``` -->
+
+
+# Demonstration with base R vs. a little bit of dyplr and Pre-workshop exercises
+
+Here is a compilation of answers, with a few explanations, for the pre-course exercise.
+
+Note the use of The tidyverse package `dyplr`, which offers lots of efficient shortcuts in data wrangling. The syntax is completely different from most of base-R, so it is good knowing a bit how to translate between them.
+
+
+1. Load the data at https://timotheenivalis.github.io/data/gapminder_wide.csv (if possible using R code)
+
+```{r, eval=FALSE}
+#1. From R studio, create a project
+dir.create("RawData") # folder for external, untreated data only.
+download.file(url = "https://timotheenivalis.github.io/data/gapminder_wide.csv",
+              destfile = "RawData/gapminder_wide.csv")# Could download manually.
+gapminder <- read_csv("RawData/gapminder_wide.csv") # can also use read.csv()
+```
+
+Or
+```{r}
+gapminder <- read.csv("https://timotheenivalis.github.io/data/gapminder_wide.csv")
+```
+
+The first solution is more future proof, because you do not have control on modifications or deletions of files on the Internet. The second solution is simpler if you just want to try something once and your code is not meant to be robust in the long term.
+
+2. Transform the dataset from a wide into a long format retaining all the data but where the only columns are: `continent`, `country`, `year`, `pop`,  `lifeExp`, `gdpPercap`. That one is a bit tricky, so if you don't manage the output is at https://timotheenivalis.github.io/data/gapminder_data.csv
+
+A base-R solution:
+
+```{r}
+yearcolumn <- function(basename, year) {
+  return(paste(basename, "_", as.character(year), sep =""))
+}
+
+years <- seq(from = 1952, to = 2007, by = 5)
+values <- c("pop", "lifeExp", "gdpPercap")
+
+for (year in years) {
+   yearcolumns <- yearcolumn(values, year)
+   yearvalues <- gapminder[c("continent", "country", yearcolumns)]
+   yearvalues["year"] = year
+   colnames(yearvalues) <- c("continent", "country", values, "year")
+   if (year == 1952) {
+     valuesbyyear <- yearvalues
+   } else {
+     valuesbyyear <- rbind(valuesbyyear, yearvalues)
+   }
+}
+#valuesbyyear is the result
+```
+
+Another base-R solution, using `do.call()`:
+```{r}
+col_names <- colnames(gapminder)
+years <- as.numeric(
+  substr(col_names[grepl("^pop_", col_names)], 5, 8)) # a bit hacky, but works
+
+df_long <- data.frame(
+  continent = rep(gapminder$continent, length(years)),
+  country = rep(gapminder$country, length(years)),
+  year = rep(years, each = nrow(gapminder)),
+  pop = do.call(c, gapminder[, grepl("^pop_", col_names)]),
+  lifeExp = do.call(c, gapminder[, grepl("^lifeExp", col_names)]),
+  gdpPercap = do.call(c, gapminder[, grepl("^gdpPercap", col_names)]))
+```
+
+
+
+A tidyverse version:
+```{r}
+gaplong0 <- gapminder %>% pivot_longer(cols = c(starts_with("gdpPercap"), starts_with("lifeExp"), starts_with("pop")),
+                           names_to = "parameter_year", values_to = "obs_val") %>%
+                          separate(parameter_year, into = c('parameter', 'year'), sep = "_") %>%
+                          pivot_wider(names_from = parameter, values_from = obs_val)
+```
+
+Another tidyverse version:
+```{r}
+test0<-pivot_longer(gapminder,
+                    cols = gdpPercap_1952:pop_2007,
+                    names_to = "type",
+                    values_to = "measure")
+
+test0$year<-str_sub(test0$type,-4,-1)
+test0$var<-sapply(str_split(test0$type,"_"),function(x) paste(x[1]))
+test0$type<-NULL
+gaplong1<-pivot_wider(test0,names_from = var, values_from = measure)
+```
+
+
+A more efficient tidyverse solution (although it requires to know a lot about regular expressions):
+```{r}
+gaplong2 <- gapminder %>%
+  pivot_longer(cols = -continent & -country,
+               names_to = c(".value", "year"),
+               names_pattern = "([^\\_]*)\\_*(\\d{4})")
+
+identical(gaplong0, gaplong1)
+identical(gaplong1, gaplong2)
+
+#some edits to the base-R solution to check the result is identical
+firstsolutioneditforcomparison <- as_tibble(valuesbyyear[order(valuesbyyear$continent, valuesbyyear$country, valuesbyyear$year),c(1,2,6,5,4,3)])
+firstsolutioneditforcomparison$year <- as.character(firstsolutioneditforcomparison$year)
+identical(firstsolutioneditforcomparison, gaplong2)
+
+
+secondsolutioneditforcomparison <- as_tibble(df_long[order(df_long$continent, df_long$country, df_long$year),c(1,2,3,6,5,4)])
+secondsolutioneditforcomparison$year <- as.character(secondsolutioneditforcomparison$year)
+identical(secondsolutioneditforcomparison, gaplong2)
+
+```
+
+
+3. In a single graph plot the relationships between lifeExp and gdpPercap in each country, but only for data after the year 1990 and for Africa and Asia only.
+
+On a log-scale and with lines:
+```{r}
+gaplong0 %>% filter(year >1990, continent %in% c("Africa", "Asia")) %>%
+  ggplot(aes(x=gdpPercap, y=lifeExp, group=country, col=country)) + geom_line()  +
+  scale_x_log10() +
+  theme(legend.position = "none")
+```
+
+with non-overlapping labels:
+```{r}
+# filter data
+data_filtered <- gaplong0 %>%
+  filter(year > 1990) %>%
+  filter(continent == c("Africa", "Asia"))
+
+# Plot scatterplot
+library(ggrepel)
+data_filtered %>%
+  group_by(country) %>%
+  summarise(
+    lifeExp = mean(lifeExp),
+    gdpPercap = mean(gdpPercap)) %>%
+  mutate(
+    label = case_when( # Create labels to label extreme values
+      lifeExp <= 40 ~ country,
+      lifeExp >= 70 ~ country,
+      TRUE          ~ '')) %>%
+
+  ggplot(aes(x = lifeExp,
+             y = gdpPercap,
+             colour = country,
+             label = label)) +
+  geom_point(stat = "summary", fun = "mean") +
+  geom_text_repel(box.padding = 1) + # Add text labels
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Continuous year scale
+```{r}
+ggplot(data=valuesbyyear[valuesbyyear$continent %in% c("Asia", "Africa") & valuesbyyear$year > 1990,],
+       aes(x=gdpPercap, y=lifeExp, colour=year, shape=continent)) + geom_point()
+```
+
+Good but legend requires lots of space
+```{r}
+gaplong1$year<-as.numeric(gaplong1$year)
+test2<-gaplong1%>%
+  filter(year>1990,continent=="Africa" | continent=="Asia")
+
+pl1<-ggplot(test2, aes(x=lifeExp,y=gdpPercap))+geom_point(aes(color=country))+theme(legend.text=element_text(size=7))
+
+plot(pl1)
+```
+
+More simple theme
+```{r}
+ggplot(
+  data = df_long[
+    df_long$continent %in% c("Africa", "Asia") & df_long$year > 1990, ],
+  mapping = aes(x = lifeExp, y = gdpPercap)) +
+  geom_point() +
+  theme_bw()
+
+```
+
+
+4. Split the data set by years into 12 datasets stored in a list
+
+Base-R:
+```{r}
+spliteddata <- split(x = gaplong1, f = gaplong1$year)
+```
+
+```{r}
+yeartables <- list()
+for (year in years) {
+  yeartables[[as.character(year)]] <- valuesbyyear[valuesbyyear$year == year,]
+}
+
+```
+
+
+Tidyverse:
+```{r}
+years <- as.integer(levels(as.factor(gaplong1$year))) # vector of years
+
+# Split data
+data_years_list <- gaplong1 %>%
+  group_by(year, .add = TRUE) %>%
+  group_split()
+```
+
+
+5. Write some code that takes each of the newly formed X datasets and output the number of rows, and mean and variance of pop, and write them into a separate file.
+
+A tidyverse-based function:
+```{r, eval=FALSE}
+myfun <- function(x)
+{
+  assertthat::assert_that(is.list(x))
+  res <- x[[1]] %>% summarise(n=n(), mean= mean(pop), var=var(pop))
+  write.csv(res, file = paste0("Data/", names(x), ".csv"))
+}
+
+for (i in 1:length(spliteddata))
+{
+  myfun(spliteddata[i])
+}
+```
+
+Tidyverse pipe:
+```{r, eval=FALSE}
+data_years_list_metadata <- data_years_list %>%
+  map_dfr( ~ .x %>% summarise(rows = nrow(.x),
+                              meanPop = mean(pop),
+                              variancePop = var(pop),
+                              year = years))
+saveRDS(data_years_list_metadata, file = "years_metadata.rds")
+```
+
+Base R loops
+```{r, eval=FALSE}
+for (year in years) {
+  yeartable <- yeartables[[as.character(year)]]
+  print(paste("Year:", as.character(year), sep=" "))
+  print(paste("Rows:", nrow(yeartable), sep=" "))
+  print(paste("Mean population:", mean(yeartable$pop), sep=" "))
+  print(paste("Population variance:", var(yeartable$pop), sep=" "))
+  write.csv(yeartable, file = paste("gapminder_", year, ".csv", sep=""))
+}
+```
+
+```{r, eval=FALSE}
+df2<-cbind("year","numb_rows","mean_pop","var_pop")
+
+for (i in 1:length(test3)){
+  tx<-test3[i]
+  txx<-as.data.frame(tx)
+  names(txx)<-c("continent","country","year","gdpPercap","lifeExp","pop")
+  yr<-unique(txx$year)
+  num_rows<-length(txx$year)
+  mean_pop<-mean(txx$pop)
+  var_pop<-var(txx$pop)
+  df1<-cbind(yr,num_rows,mean_pop,var_pop)
+  df2<-rbind(df2,df1)
+}
+
+df_1<-as.data.frame(df2)
+df_1<-df_1[-1,]
+df_1
+write.csv(df_1,"results/mean_var_pop.csv")
+```
+
+do.call base-R version:
+```{r, eval=FALSE}
+summary_df <- do.call(rbind,
+  lapply(df_list, function(a){
+    data.frame(
+      n_rows = nrow(a),
+      mean_pop = mean(a$pop, na.rm = TRUE),
+      var_pop = var(a$pop, na.rm = TRUE)
+    )
+  }))
+
+# optionally save
+write.csv(summary_df, "summary_results.csv", row.names = FALSE)
+```
 
 # Sources and further reading
 
-Advanced R by Hadley Wickham http://adv-r.had.co.nz/ (contains much of what we talked about and more advanced topics)
+Advanced R by Hadley Wickham https://adv-r.hadley.nz/index.html (contains much of what we talked about and more advanced topics)
 
 http://swcarpentry.github.io/r-novice-gapminder/ (very introductory but go through it if you feel like you miss basic knowledge on a specific topic)
 

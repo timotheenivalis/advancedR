@@ -1,0 +1,439 @@
+---
+title: "Debugging and Profiling"
+author: "Timothee Bonnet"
+date: "22/09/2021"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    number_sections: true
+    theme: lumen
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(microbenchmark)
+library(profvis)
+library(gdata)
+```
+
+
+# Debugging 
+
+## Ad-hoc debugging strategy
+
+Often you can fix errors or warnings by reading the message and realising you made a typo or used the wrong input. However things can get trickier with larger projects, new functions, or unusual behaviours.
+
+That is my main method to fix errors.
+
+* Make the bug reproducible (`set.seed()` if your code involves random draws; find a small input that generates the error)
+* Locate the problem by printing intermediate results, and interrupting the script when things go wrong 
+* Isolate the part of code that generate the error and make sure it still throw the error when run alone
+* Visualise the objects you are manipulating; check your assumptions about what you think the objects should look like
+* If it still does not make sense, try different inputs
+
+Often you will realise that an object is not what you were expecting. You can then trace back why that is the case, look for what triggered an exception, and edit your code to make it robust to those exceptions.
+
+## Tools
+
+There are also many dedicated tools that may be helpful. In general I use them through RStudio, but many more options are available in the R console. If you do a lot of debugging you may want to have a careful read of https://adv-r.hadley.nz/debugging.html which introduces a lot of the nuance about what different tools do and how to tackle more complex problems. 
+For most work I think you should be fine with knowing how to trace the calls made in your calls (traceback) and how to set  points to interrupt your code and look at intermediate results (breakpoints).
+
+### Traceback
+
+```{r, error=TRUE}
+f <- function(a) g(a)
+g <- function(b) h(b)
+h <- function(c) i(c)
+i <- function(d) {
+  if (!is.numeric(d)) {
+    stop("`d` must be numeric", call. = FALSE)
+  }
+  d + 10
+}
+
+f("a")
+```
+
+```{r}
+traceback()
+```
+
+### Breakpoint
+
+Inspect intermediate state of the environment. If in a .R-file either `shift+F9`, or click in the left margin, or use `browser()`. If in .Rmd file use `browser()`
+
+```{r}
+out <- vector(length = 3)
+for(i in 1:3)
+{
+  if( i == 2)
+  {
+     browser() 
+    out[i] <- sin(i)
+  }else{
+    out[i] <- i*2
+     browser()
+  }
+  out[i] <- "a"
+}
+
+```
+
+Jump between breakpoints by returning an empty line of code, or explore the current state by entering code.
+
+
+If debug on error
+```{r}
+f1 <- function(b=3){
+  out <- vector(length = b)
+for(i in 1:b)
+{
+  if( i == 2)
+  {
+    out[i] <- sin(i)
+  }else{
+    out[i] <- mean(i*2*f("d"))
+  }
+  out[i] <- "a"
+}
+}
+
+f1(3)
+
+```
+
+
+Debugging code that uses a function without modifying its code.
+```{r}
+debugonce(mean)
+mean("a")
+```
+
+
+### In RStudio
+
+You have three different debugging modes available in the menu (these options and many more parameters can be set directly in R with `options()`)
+
+Menu -> Debug -> On Error ->
+  * Message only
+  * **Error inspector**
+  * Break in code
+
+RStudio uses `traceback()`, so the output should be consistent with calling the function directly and may be inconsistent with other methods (`where()`, `debug()`...)
+
+## Practice
+
+
+Consider the set of functions below. They are pretty badly coded (my fault), but in principle they should work. Except for one coding mistake. It is unfair, because there is a lot of non-documented code for which you have no context (the point is that it is hard to directly see the problem so that you are encouraged to try the debugging tools!), but I would like you to try and find where the problem appears and what causes. Debugging tools should help you there.
+
+```{r}
+FMakeNewTree <- function(id, birthyear)
+{
+  list(id=id, birthyear=birthyear)
+}
+
+FinitializeTrees <-function(number=4, age=301)
+{
+  treepop <- list()
+  for (i in 1:number)
+  {
+    treepop[[i]] <- list(id=i, birthyear=-age)
+  }
+  return(treepop)
+}
+
+FMakeNewRed <- function(id, birthyear)
+{
+#  stopifnot(is.numeric(birthyear))
+  list(id=id, birthyear=birthyear)
+}
+
+FinitializeReds <- function(number=20)
+{
+  redpop <- list()
+  for (i in 1:number)
+  {
+    redpop[[i]] <- list(id=i, birthyear=-sample(x=31:50, size = 1))
+  }
+  return(redpop)
+}
+
+mainfunction <- function(yearnb=150, extrinsicmortality=0.001)
+{
+  monitor <- data.frame(year=1:yearnb, reds=rep(0, times=yearnb), trees=rep(0, times=yearnb),
+                      adulttree=rep(0, times=yearnb), reprotree=rep(0, times=yearnb))
+
+  reprotable <- data.frame(tree=1L, red=1:2L, fertilyear =-1L, lastrepro=-1L)
+
+  treepop <- FinitializeTrees(number=1)
+  redpop <- FinitializeReds(number = 2)
+  globalredcounter <- length(redpop)
+  
+  
+
+y <-0L
+while(globalredcounter<10000L & y<yearnb & length(treepop)<10000L)
+{
+  y <- y +1L
+  currenttrees <- unlist(lapply(treepop, function(x) x$id))
+  currentreds <- unlist(lapply(redpop, FUN = function(x){x$id}))
+  if(length(redpop)>0)
+  {
+    #Trees being fertilized
+    tomate <- unlist(lapply(redpop, FUN = function(x){x$id[(y-x$birthyear)>=30]}))
+    
+    if(length(tomate)>0)
+    {
+      pottreesall <- reprotable[(reprotable$tree %in% currenttrees) &
+                                    reprotable$lastrepro==-1L,]
+      if(nrow(pottreesall)>0)
+      {
+        for (ind in tomate)
+        {
+          pottrees <- pottreesall$tree[pottreesall$red==ind]
+  
+          if(length(pottrees)>0)
+            {
+            if(length(pottrees)>1)
+            {
+            tree <- sample(pottrees, size = 1, replace = FALSE)
+            }else{tree<-pottrees}
+            reprotable[reprotable$tree==tree & reprotable$red==ind,
+                       c("fertilyear", "lastrepro")] <- c(y, 0)
+          }
+        }
+      }#end     if(length(tomate)>0)
+    }
+      
+    #Death of reds and creations of new trees
+    deathlists <- NULL
+    extdeath <- rbinom(n = length(redpop), size = 1, extrinsicmortality)==1
+    
+    for (ind in 1:length(redpop))
+    {
+      if((y-redpop[[ind]]$birthyear > 100) | extdeath[ind])
+      {
+        deathlists <- c(deathlists, ind)
+        newid<-length(treepop)+1
+        treepop[[newid]] <- FMakeNewTree(id = newid, birthyear = y)
+
+      }
+    }
+    
+    if(length(deathlists)>0)
+    {
+      reprotable <-reprotable[!( (reprotable$red %in% currentreds[deathlists]) &
+                   reprotable$fertilyear==-1),]
+      reprotable <- rbind(reprotable,
+                          expand.grid(tree=(length(treepop)-length(deathlists)):length(treepop), 
+                                      red=currentreds,
+                                      fertilyear =-1L, lastrepro=-1L))
+      redpop <- redpop[-deathlists]
+    }
+  }
+  
+  #Reds being born
+  currentreptrees <- unlist(lapply(treepop, function(x) x$id[(y-x$birthyear)>300]))
+  currenttrees <- unlist(lapply(treepop, function(x) x$id))
+  
+  if(length(currentreptrees)>(length(redpop)/10))
+  {
+    reprotrees <- reprotable[(reprotable$tree %in% currentreptrees) & 
+                               (reprotable$lastrepro!=-1) &
+               ((reprotable$lastrepro == 0) | ((y - reprotable$lastrepro) > 100)) &
+                 (y - reprotable$fertilyear)>4,]
+  if(nrow(reprotrees)>1)
+  {
+    treeid <- unique(reprotrees$tree)
+    firstnewred <- globalredcounter+1
+    for (ind in 1:length(treeid))
+      {
+      potreds <- reprotrees$red[reprotrees$tree == treeid[ind]]
+         if(length(potreds)>1)
+         {
+          gametes <- sample(potreds, size = 2, replace = FALSE)
+          reprotable$lastrepro[(reprotable$tree==treeid[ind]) & 
+                       reprotable$red %in% gametes] <- y
+          globalredcounter <- globalredcounter+1
+          redpop[[length(redpop)+1]] <- FMakeNewRed(id=globalredcounter, birthyear = "y")
+        }
+    }
+    reprotable <- rbind(reprotable,
+                        expand.grid(tree=currenttrees, 
+                                    red=firstnewred:max(c(firstnewred+40),globalredcounter),
+                                    fertilyear =-1L, lastrepro=-1L))
+  }
+  }# end  if(length(currentreptrees)>( length(redpop)/10))
+  
+  
+  monitor[y,] <- c(y, length(redpop), length(treepop),
+                   sum(unlist(lapply(treepop,function(x) {(y-x$birthyear)>300}))),
+                   length(unique(reprotrees$tree)))
+  print(paste("year=",y, " reds=", length(redpop), " trees=", length(treepop)))
+
+  }#end while
+  return(monitor)
+}
+```
+
+Here is the error:
+```{r}
+dat <- mainfunction()
+```
+
+First step, just in case set a random seed and see if you still see the error. If the error disappears, pick another seed until it is there.
+
+```{r}
+set.seed(123)
+dat <- mainfunction()
+```
+
+Then, the traceback identifies the error on `unlist(lapply(redpop, FUN = function(x) {x$id[(y - x$birthyear) >= 30]}))`, the debugger can even highlight the line for you.
+
+The debugger shows that a value of `birthyear` is `y`. Given the context you see it should be a number instead of a character. You may confirm that by also noticing that the other elements of `redpop` have numbers as `birthyear`.
+How did that happen? Let's look where values of redpop may be created or modified. You could modify the code with `browser()` to check the state of the object at different points, but doing a text search you should find only 2 spots where the object is modified, and that should lead you to the problem.
+
+
+# Profiling
+
+Once your code works, good code may mean:
+
+* Clear, well commented, easy to read code using standard programming tools that your colleague know about (rather than some obscure packages doing black magic only you understand)
+* Fast
+* Frugal in RAM, disk space (Internet usage, electricity)
+* Flexible (Work for a wide range of data, analyses... and also likely to work in the future when R, packages and computer libraries are upgraded, or at least be easy to upgrade along)
+
+Profiling is a method to test and decompose the speed and memory usage of all parts of your code.
+It lets you identify bottlenecks, inefficient functions, things you run many times but don't really need too...
+
+
+### Code profiling in RStudio with profvis
+
+`profvis` estimates both memory and time used by each code element and elements within.
+
+
+```{r}
+
+f1 <- function(nb =1000, nsamp = 3000)
+{
+for (i in 1:nb)
+{
+  if(i == 1)
+  {
+    offset <- runif(n=1, min = 1, max = 3)
+    output <- data.frame(i=1)
+    samp <- rnorm(n = nsamp)
+    output$mean <- mean(samp) - offset[i]
+    output$sd <- sd(samp)
+    output$sem <- sd(samp)/sqrt(length(samp))
+    
+  }
+  offsettemp <- runif(n=1, min = 1, max = 3)
+  offset <- c(offset, offsettemp)
+  output <- rbind(output, as.data.frame(t(c(i=1, mean=NA, sd=NA, sem=NA))))
+  samp <- rnorm(n = nsamp) 
+  output$mean[i] <- mean(samp -  offset[i])
+  output$sd[i] <- sd(samp)
+  output$sem[i] <- sd(samp)/sqrt(length(samp))
+}
+
+}
+```
+
+```{r}
+
+f1()
+```
+
+
+
+### How to do better?
+
+
+#### benchmarking
+Profiling as done is profvis is good for projects, but is inaccurate to compare the exact speed performances of different functions because it samples at a rate of 20ms; and run the code only once. Computing time is stochastic, so you should try the code a few times to get an idea of the average speed and varaition in speed.
+That is were microbenchmark is much better.
+
+
+```{r}
+library(microbenchmark)
+
+```
+
+```{r}
+microbenchmark(f1(nb = 100, nsamp = 300))
+```
+
+
+A better solution: pre-allocate memory, assign in one go, substract once instead of on each elements...
+
+```{r}
+f2 <- function(nb = 100, nsamp = 300)
+  {
+output <- data.frame(i=1:nb, mean=NA, sd=NA, sem=NA)
+offset <- runif(n=nb, min = 1, max = 3)
+for (i in 1:nb)
+{
+  samp <- rnorm(n = nsamp)
+  output[i,2:4] <- c(mean(samp)-offset[i], sd(samp), sd(samp)/sqrt(length(samp)))
+}
+}
+
+```
+
+```{r}
+microbenchmark(f1(nb = 100, nsamp = 300), f2(nb = 100, nsamp = 300))
+```
+
+Even better:
+
+```{r}
+f3 <- function(nb = 100, nsamp = 300)
+  {
+output <- data.frame(i=1:nb, mean=NA, sd=NA, sem=NA)
+offset <- runif(n=nb, min = 1, max = 3)
+
+for (i in 1:nb)
+{
+  samp <- rnorm(n = nsamp)
+  output[[i]] <- list(i,mean(samp)-offset[i], sd(samp), sd(samp)/sqrt(length(samp)))
+}
+}
+
+```
+
+```{r}
+microbenchmark(f1(nb = 100, nsamp = 300), f2(nb = 100, nsamp = 300), f3(nb = 100, nsamp = 300), times = 1000)
+```
+
+```{r}
+f4 <- function(nb = 100, nsamp = 300)
+  {
+output <- data.frame(i=1:nb, mean=NA, sd=NA, sem=NA)
+offset <- runif(n=nb, min = 1, max = 3)
+sqss <- sqrt(nsamp)
+for (i in 1:nb)
+{
+  samp <- rnorm(n = nsamp)
+  output[[i]] <- list(i,mean(samp)-offset[i], sd(samp), sd(samp)/sqss)
+}
+}
+
+```
+
+```{r}
+microbenchmark(f1(nb = 100, nsamp = 300), f2(nb = 100, nsamp = 300), 
+               f3(nb = 100, nsamp = 300), f4(nb = 100, nsamp = 300), times = 1000)
+
+```
+
+### Exercise?
+
+Sets of functions called from a main function, work to make it as efficient as possible.
+

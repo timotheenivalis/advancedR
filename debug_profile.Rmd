@@ -357,7 +357,7 @@ f1()
 
 
 #### benchmarking
-Profiling as done is profvis is good for projects, but is inaccurate to compare the exact speed performances of different functions because it samples at a rate of 20ms; and run the code only once. Computing time is stochastic, so you should try the code a few times to get an idea of the average speed and varaition in speed.
+Profiling as done is profvis is good for projects, but is inaccurate to compare the exact speed performances of different functions because it samples at a rate of 20ms; and run the code only once. Computing time is stochastic, so you should try the code a few times to get an idea of the average speed and variation in speed.
 That is were microbenchmark is much better.
 
 
@@ -433,7 +433,11 @@ microbenchmark(f1(nb = 100, nsamp = 300), f2(nb = 100, nsamp = 300),
 
 ```
 
-### Exercise?
+### Exercise homework
+```{r}
+download.file(url = "https://timotheenivalis.github.io/data/gapminder_data.csv", destfile = "Data/gapminder.csv")
+gapminder <- read.csv("Data/gapminder.csv")
+```
 
-Sets of functions called from a main function, work to make it as efficient as possible.
 
+Using the long-format gapminder data, write a function that for each continent finds which country had the largest change in life expectancy between 2 successive censuses (for instance from 1962 to 1967; from 1967 to 1972...). Measure the performance of your function and compare it to alternatives. 

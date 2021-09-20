@@ -1,0 +1,58 @@
+---
+title: "Advanced R: Show us your R"
+author: "Timothée Bonnet & Robert Cope"
+date: "18/08/2021"
+output: 
+  html_document:     
+    theme: lumen
+    highlight: tango
+---
+
+We would like you to show us how you use R on a small sample of tasks. 
+This is not a test, there are no right or wrong answers, and ideally we would prefer if you do not look up solutions or try hard to make them as elegant as possible. Try to code as you would normally do, without thinking too hard. However you are welcome to propose multiple solutions if you see options that are about equivalent to you. If you don't see how to do something at all, that is fine too, just let us know in your reply (and be sure we will keep this anonymous!). **We just want to learn a little about your coding style to have a better idea of what you may find super intuitive and familiar and what may be relatively new to you.**
+
+
+1. Load the data at https://timotheenivalis.github.io/data/gapminder_wide.csv (if possible using R code)
+2. Transform the dataset from a wide into a long format retaining all the data but where the only columns are: `continent`, `country`, `year`, `pop`,  `lifeExp`, `gdpPercap`. That one is a bit tricky, so if you don't manage the output is at https://timotheenivalis.github.io/data/gapminder_data.csv
+3. In a single graph plot the relationships between lifeExp and gdpPercap in each country, but only for data after the year 1990 and for Africa and Asia only.
+4. Split the data set by years into 12 datasets stored in a list
+5. Write some code that takes each of the newly formed X datasets and output the number of rows, and mean and variance of pop, and write them into a separate file.
+
+```{r, include=FALSE, echo=FALSE, eval=FALSE}
+# my solutions
+library(tidyverse)
+# 1
+dir.create("Data")
+download.file(url = "https://timotheenivalis.github.io/data/gapminder_wide.csv", destfile = "Data/gapminder_wide.csv")
+gapminder <- read_csv("Data/gapminder_wide.csv")
+
+# 2
+gaplong <- gapminder %>% pivot_longer(cols = c(starts_with("gdpPercap"), starts_with("lifeExp"), starts_with("pop")), 
+                           names_to = "parameter_year", values_to = "obs_val") %>%
+                          separate(parameter_year, into = c('parameter', 'year'), sep = "_") %>%
+                          pivot_wider(names_from = parameter, values_from = obs_val)
+
+# 3
+gaplong %>% filter(year >1990, continent %in% c("Africa", "Asia")) %>% 
+  ggplot(aes(x=gdpPercap, y=lifeExp, group=country, col=country)) + geom_line()  + 
+  scale_x_log10() +
+  theme(legend.position = "none")
+
+# 4
+spliteddata <- split(x = gaplong, f = gaplong$year)
+
+# 5
+myfun <- function(x)
+{
+  assertthat::assert_that(is.list(x))
+  res <- x[[1]] %>% summarise(n=n(), mean= mean(pop), var=var(pop))
+  write.csv(res, file = paste0("Data/", names(x), ".csv"))
+}
+
+for (i in 1:length(spliteddata))
+{
+  myfun(spliteddata[i])  
+}
+
+```
+

@@ -193,6 +193,7 @@ object.size(many_repeated_chr) ; typeof(many_repeated_chr) ;
 object.size(many_long_repeated_chr) ; typeof(many_repeated_chr) ;
 object.size(many_unique_chr) ; typeof(many_unique_chr)
 
+object.size(as.raw(many_bool))
 ```
 
 bool < integer **<<** double < short repeated character strings < very long repeated character strings **<<** unique character strings

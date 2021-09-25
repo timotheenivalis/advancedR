@@ -39,6 +39,19 @@ That is my main method to fix errors.
 
 Often you will realise that an object is not what you were expecting. You can then trace back why that is the case, look for what triggered an exception, and edit your code to make it robust to those exceptions.
 
+
+```{r}
+set.seed(1234)
+
+for(i in 1:100)
+{
+  a <- sample(c(2,3), size = 1)
+  x <- c(1,2)
+  plot(1, x[a])
+}
+```
+
+
 ## Tools
 
 There are also many dedicated tools that may be helpful. In general I use them through RStudio, but many more options are available in the R console. If you do a lot of debugging you may want to have a careful read of https://adv-r.hadley.nz/debugging.html which introduces a lot of the nuance about what different tools do and how to tackle more complex problems. 
@@ -131,6 +144,12 @@ RStudio uses `traceback()`, so the output should be consistent with calling the 
 
 
 Consider the set of functions below. They are pretty badly coded (my fault), but in principle they should work. Except for one coding mistake. It is unfair, because there is a lot of non-documented code for which you have no context (the point is that it is hard to directly see the problem so that you are encouraged to try the debugging tools!), but I would like you to try and find where the problem appears and what causes. Debugging tools should help you there.
+
+```{r}
+download.file(url = "https://timotheenivalis.github.io/Rnotebooks/todebug.R", destfile = "todebug.R")
+              
+```
+
 
 ```{r}
 FMakeNewTree <- function(id, birthyear)
